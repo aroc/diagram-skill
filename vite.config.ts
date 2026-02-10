@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react(), diagramPlugin()],
   server: {
     port: 5174,
+    strictPort: true,
     open: true,
   },
 });

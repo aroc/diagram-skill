@@ -4,7 +4,7 @@ import { ErrorDisplay } from "./components/ErrorDisplay";
 import { LoadingDisplay } from "./components/LoadingDisplay";
 
 export default function App() {
-  const { elements, files, error, loading, mermaidSource, revision } =
+  const { elements, files, error, loading, mermaidSource } =
     useMermaidDiagram();
 
   if (loading) {
@@ -19,11 +19,5 @@ export default function App() {
     return <LoadingDisplay hasDiagram={false} />;
   }
 
-  return (
-    <DiagramViewer
-      elements={elements}
-      files={files}
-      updateKey={revision}
-    />
-  );
+  return <DiagramViewer elements={elements} files={files} />;
 }

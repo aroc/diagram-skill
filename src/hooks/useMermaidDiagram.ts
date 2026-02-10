@@ -12,6 +12,7 @@ interface DiagramState {
 
 export function useMermaidDiagram() {
   const revisionRef = useRef(0);
+  const fetchIdRef = useRef(0);
   const [state, setState] = useState<DiagramState>({
     elements: null,
     files: null,
@@ -22,8 +23,13 @@ export function useMermaidDiagram() {
   });
 
   const fetchAndConvert = useCallback(async () => {
+    const thisId = ++fetchIdRef.current;
+
     try {
       const res = await fetch("/api/diagram");
+
+      // Stale response — a newer fetch was started
+      if (thisId !== fetchIdRef.current) return;
 
       if (res.status === 404) {
         setState((prev) => ({
@@ -38,9 +44,12 @@ export function useMermaidDiagram() {
       }
 
       const source = await res.text();
+      if (thisId !== fetchIdRef.current) return;
 
       try {
         const { elements, files } = await convertMermaid(source);
+        if (thisId !== fetchIdRef.current) return;
+
         revisionRef.current += 1;
         setState({
           elements,
@@ -51,6 +60,7 @@ export function useMermaidDiagram() {
           revision: revisionRef.current,
         });
       } catch (parseError) {
+        if (thisId !== fetchIdRef.current) return;
         setState((prev) => ({
           ...prev,
           elements: null,
@@ -64,6 +74,7 @@ export function useMermaidDiagram() {
         }));
       }
     } catch (fetchError) {
+      if (thisId !== fetchIdRef.current) return;
       setState((prev) => ({
         ...prev,
         elements: null,
@@ -85,9 +96,13 @@ export function useMermaidDiagram() {
   // Listen for HMR updates from Vite plugin
   useEffect(() => {
     if (import.meta.hot) {
-      import.meta.hot.on("diagram:update", () => {
+      const handler = () => {
         fetchAndConvert();
-      });
+      };
+      import.meta.hot.on("diagram:update", handler);
+      return () => {
+        import.meta.hot!.off("diagram:update", handler);
+      };
     }
   }, [fetchAndConvert]);
 
