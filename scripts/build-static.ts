@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -89,10 +89,14 @@ function main() {
 
   try {
     // 5. Run vite build with output directory override
-    execSync(`npx vite build --outDir ${JSON.stringify(resolvedOutputDir)}`, {
+    const result = spawnSync("npx", ["vite", "build", "--outDir", resolvedOutputDir], {
       cwd: SKILL_DIR,
       stdio: "inherit",
     });
+
+    if (result.status !== 0) {
+      process.exit(result.status ?? 1);
+    }
 
     console.log(`\nStatic diagram exported to: ${resolvedOutputDir}/`);
     console.log("Open index.html in a browser to view the diagram.");
