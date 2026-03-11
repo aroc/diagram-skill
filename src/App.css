@@ -22,6 +22,10 @@ body,
   overflow: hidden;
 }
 
+.app-layout--static {
+  grid-template-columns: 1fr;
+}
+
 .diagram-panel {
   overflow: hidden;
   position: relative;

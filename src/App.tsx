@@ -5,6 +5,7 @@ import { FlowViewer } from "./components/FlowViewer";
 import { ErrorDisplay } from "./components/ErrorDisplay";
 import { LoadingDisplay } from "./components/LoadingDisplay";
 import { HistorySidebar } from "./components/HistorySidebar";
+import { INLINE_DIAGRAM_JSON } from "./lib/inline-data";
 
 function getInitialRenderer(): RendererType {
   const params = new URLSearchParams(window.location.search);
@@ -16,6 +17,7 @@ export default function App() {
   const [renderer, setRenderer] = useState<RendererType>(getInitialRenderer);
   const [activeDiagramId, setActiveDiagramId] = useState<string | null>(null);
   const [sourceOverride, setSourceOverride] = useState<string | null>(null);
+  const isStaticMode = INLINE_DIAGRAM_JSON != null;
 
   const { data, error, loading, diagramSource } = useDiagram(renderer, sourceOverride);
 
@@ -58,14 +60,16 @@ export default function App() {
   };
 
   return (
-    <div className="app-layout">
-      <HistorySidebar
-        activeId={activeDiagramId}
-        onLoad={handleLoad}
-        onLoadLive={handleLoadLive}
-        renderer={renderer}
-        onRendererChange={setRenderer}
-      />
+    <div className={isStaticMode ? "app-layout app-layout--static" : "app-layout"}>
+      {!isStaticMode && (
+        <HistorySidebar
+          activeId={activeDiagramId}
+          onLoad={handleLoad}
+          onLoadLive={handleLoadLive}
+          renderer={renderer}
+          onRendererChange={setRenderer}
+        />
+      )}
       <div className="diagram-panel">
         {renderDiagram()}
       </div>
