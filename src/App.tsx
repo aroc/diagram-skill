@@ -71,6 +71,22 @@ export default function App() {
         />
       )}
       <div className="diagram-panel">
+        {isStaticMode && (
+          <div className="static-renderer-toggle">
+            <button
+              className={`toggle-btn ${renderer === "flow" ? "active" : ""}`}
+              onClick={() => setRenderer("flow")}
+            >
+              React Flow
+            </button>
+            <button
+              className={`toggle-btn ${renderer === "excalidraw" ? "active" : ""}`}
+              onClick={() => setRenderer("excalidraw")}
+            >
+              Excalidraw
+            </button>
+          </div>
+        )}
         {renderDiagram()}
       </div>
     </div>

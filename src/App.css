@@ -26,6 +26,16 @@ body,
   grid-template-columns: 1fr;
 }
 
+.static-renderer-toggle {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
 .diagram-panel {
   overflow: hidden;
   position: relative;
