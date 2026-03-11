@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { convertGraph, type ConvertedElements } from "../lib/elk-converter";
 import { convertGraphToFlow, type FlowResult } from "../lib/reactflow-converter";
+import { INLINE_DIAGRAM_JSON } from "../lib/inline-data";
 
 export type RendererType = "excalidraw" | "flow";
 
@@ -123,16 +124,22 @@ export function useDiagram(renderer: RendererType, sourceOverride?: string | nul
     }
   }, [sourceOverride, convertSource]);
 
-  // Fetch from server when no override
-  useEffect(() => {
-    if (sourceOverride == null) {
-      fetchAndConvert();
-    }
-  }, [sourceOverride, fetchAndConvert]);
-
-  // Listen for HMR updates from Vite plugin (only when live)
+  // Fetch from server when no override and not in static mode
   useEffect(() => {
     if (sourceOverride != null) return;
+    if (INLINE_DIAGRAM_JSON != null) {
+      // Static mode: use inlined data directly
+      const thisId = ++fetchIdRef.current;
+      convertSource(INLINE_DIAGRAM_JSON, thisId);
+      return;
+    }
+    fetchAndConvert();
+  }, [sourceOverride, convertSource, fetchAndConvert]);
+
+  // Listen for HMR updates from Vite plugin (only when live, not static)
+  useEffect(() => {
+    if (sourceOverride != null) return;
+    if (INLINE_DIAGRAM_JSON != null) return; // static mode — no HMR
     if (import.meta.hot) {
       const handler = () => {
         fetchAndConvert();
