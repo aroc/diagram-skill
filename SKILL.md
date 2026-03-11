@@ -128,7 +128,7 @@ The file does not need to exist before starting the viewer — the viewer will s
 - Every node referenced in `groups.children` or `edges` must exist in `nodes`
 - A node can belong to at most one group. Nodes not in any group are placed standalone.
 
-### 3. Start the Viewer
+### 3a. Start the Viewer (interactive server)
 
 ```bash
 cd <skill-dir>
@@ -138,6 +138,25 @@ npm install && npm run dev
 This opens a browser at `http://localhost:5174` with the interactive Excalidraw diagram. The port is fixed at 5174 — if it's already in use from a previous session, find and kill that process first (`lsof -ti:5174 | xargs kill`).
 
 Tell the user: "The architecture diagram is now open at http://localhost:5174. You can drag nodes, edit labels, and export to PNG (via the hamburger menu in the top-left)."
+
+### 3b. Export as Static HTML (optional)
+
+If the user asks to save the diagram locally, export it to a folder, or wants a static version they can open without a server:
+
+````bash
+cd <skill-dir>
+npm install && npm run build:static -- --output /path/to/target-folder
+````
+
+**Options:**
+- `--output <dir>` or `-o <dir>`: Target folder for the static build (default: `dist`). Relative paths resolve from the current working directory.
+- `--diagram <file>` or `-d <file>`: Path to the diagram JSON file (default: `diagram.json` in the skill directory).
+
+This produces a self-contained folder with `index.html` + bundled JS/CSS. The diagram is fully interactive — drag nodes, edit labels, export to PNG/SVG via the Excalidraw menu. No server needed; open `index.html` directly in a browser.
+
+Tell the user: "The diagram has been exported to `/path/to/target-folder/`. Open `index.html` in a browser to view the interactive diagram."
+
+**Note:** Static export and the dev server are independent. Use `npm run dev` to iterate with live reload, then `npm run build:static` to snapshot the result.
 
 ### 4. Iterate
 
