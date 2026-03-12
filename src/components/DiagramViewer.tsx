@@ -10,7 +10,7 @@ interface DiagramViewerProps {
 export function DiagramViewer({ elements, files }: DiagramViewerProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiRef = useRef<any>(null);
-  const initializedRef = useRef(false);
+  const prevElementsRef = useRef<ConvertedElements>(elements);
 
   const zoomToFit = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,13 +36,10 @@ export function DiagramViewer({ elements, files }: DiagramViewerProps) {
   // Update elements in-place when they change, preserving user edits and viewport
   useEffect(() => {
     if (!apiRef.current) return;
+    // Skip if elements haven't changed (e.g. initial mount — already set via initialData)
+    if (prevElementsRef.current === elements) return;
+    prevElementsRef.current = elements;
 
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      return; // handleMount already handles initial zoom
-    }
-
-    // Subsequent updates: update scene in-place (preserves viewport & user annotations)
     apiRef.current.updateScene({
       elements: [...elements],
     });

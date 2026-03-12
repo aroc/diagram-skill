@@ -1,24 +1,14 @@
 import type { Node, Edge } from "@xyflow/react";
 import { layoutGraph, type Box } from "./elk-layout";
-
-// Pastel background colors for group containers (same as Excalidraw adapter)
-const GROUP_COLORS = [
-  "#dbeafe", // blue
-  "#dcfce7", // green
-  "#ede9fe", // purple
-  "#ffedd5", // orange
-  "#fce7f3", // pink
-  "#cffafe", // cyan
-  "#fef9c3", // yellow
-  "#fee2e2", // red
-];
+import type { DiagramTheme } from "./themes";
+import { getTheme, DEFAULT_THEME_ID } from "./themes";
 
 export interface FlowResult {
   nodes: Node[];
   edges: Edge[];
 }
 
-export async function convertGraphToFlow(source: string): Promise<FlowResult> {
+export async function convertGraphToFlow(source: string, theme: DiagramTheme = getTheme(DEFAULT_THEME_ID)): Promise<FlowResult> {
   const { positions, groups, nodes, edges } = await layoutGraph(source);
 
   const nodeToGroup = new Map<string, string>();
@@ -36,15 +26,15 @@ export async function convertGraphToFlow(source: string): Promise<FlowResult> {
       id: group.id,
       type: "labeledGroup",
       position: { x: pos.x, y: pos.y },
-      data: { label: group.label, color: GROUP_COLORS[idx % GROUP_COLORS.length] },
+      data: { label: group.label, color: theme.groupColors[idx % theme.groupColors.length], labelColor: theme.group.labelColor },
       measured: { width: pos.width, height: pos.height },
       style: {
         width: pos.width,
         height: pos.height,
-        backgroundColor: GROUP_COLORS[idx % GROUP_COLORS.length],
-        borderRadius: 8,
-        border: "1px solid #868e96",
-        opacity: 0.9,
+        backgroundColor: theme.groupColors[idx % theme.groupColors.length],
+        borderRadius: theme.group.borderRadius,
+        border: `${theme.group.strokeWidth}px solid ${theme.group.strokeColor}`,
+        opacity: theme.group.opacity,
         padding: 8,
         fontSize: 14,
         fontWeight: 600,
@@ -71,15 +61,16 @@ export async function convertGraphToFlow(source: string): Promise<FlowResult> {
     flowNodes.push({
       id: node.id,
       position,
-      data: { label: node.label, color: "#ffffff" },
+      ...(node.description ? { type: "describedNode" } : {}),
+      data: { label: node.label, description: node.description, color: theme.node.bgColor, descriptionColor: theme.edge.labelColor },
       ...(groupId ? { parentId: groupId } : {}),
       measured: { width: pos.width, height: pos.height },
       style: {
         width: pos.width,
         height: pos.height,
-        backgroundColor: "#ffffff",
-        border: "2px solid #1e1e1e",
-        borderRadius: 8,
+        backgroundColor: theme.node.bgColor,
+        border: `${theme.node.strokeWidth}px solid ${theme.node.strokeColor}`,
+        borderRadius: theme.node.borderRadius,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -99,14 +90,14 @@ export async function convertGraphToFlow(source: string): Promise<FlowResult> {
     ...(edge.label
       ? {
           label: edge.label,
-          labelStyle: { fontSize: 13, fontWeight: 500, fill: "#333" },
-          labelBgStyle: { fill: "#ffffff", fillOpacity: 1 },
+          labelStyle: { fontSize: 13, fontWeight: 500, fill: theme.edge.labelColor },
+          labelBgStyle: { fill: theme.edge.labelBgColor, fillOpacity: 1 },
           labelBgPadding: [6, 4] as [number, number],
           labelBgBorderRadius: 4,
           zIndex: 1,
         }
       : {}),
-    style: { stroke: "#495057", strokeWidth: 2 },
+    style: { stroke: theme.edge.strokeColor, strokeWidth: theme.edge.strokeWidth },
   }));
 
   return { nodes: flowNodes, edges: flowEdges };

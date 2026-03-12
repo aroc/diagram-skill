@@ -1,6 +1,10 @@
 plans
 node_modules
 dist
+dist-scripts
 diagram.json
 diagram.mermaid
 .playwright-mcp
+.DS_Store
+history
+latest-diagram

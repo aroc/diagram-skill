@@ -10,6 +10,10 @@ const CHAR_WIDTH_FACTOR = 1.3;
 const NODE_PAD_X = 70;
 const MIN_NODE_W = 170;
 const MIN_NODE_H = 52;
+const DESC_FONT_SIZE = 13;
+const DESC_LINE_HEIGHT = 18;
+const DESC_MAX_CHARS_PER_LINE = 35;
+const DESC_PAD_BOTTOM = 12;
 
 const GROUP_LABEL_FONT_SIZE = 22;
 const GROUP_LABEL_HEIGHT = 36;
@@ -20,11 +24,18 @@ export function textWidth(text: string, fontSize: number): number {
   return text.length * fontSize * CHAR_WIDTH_FACTOR;
 }
 
-export function nodeSize(label: string): { width: number; height: number } {
-  return {
-    width: Math.max(textWidth(label, NODE_FONT_SIZE) + NODE_PAD_X, MIN_NODE_W),
-    height: MIN_NODE_H,
-  };
+export function nodeSize(label: string, description?: string): { width: number; height: number } {
+  let width = Math.max(textWidth(label, NODE_FONT_SIZE) + NODE_PAD_X, MIN_NODE_W);
+  let height = MIN_NODE_H;
+
+  if (description) {
+    const descLines = Math.ceil(description.length / DESC_MAX_CHARS_PER_LINE);
+    const descWidth = Math.min(description.length, DESC_MAX_CHARS_PER_LINE) * DESC_FONT_SIZE * 0.65 + NODE_PAD_X;
+    width = Math.max(width, descWidth);
+    height += descLines * DESC_LINE_HEIGHT + DESC_PAD_BOTTOM;
+  }
+
+  return { width, height };
 }
 
 // ─── Type helpers for the ELK result (minimal) ──────────────────────
@@ -146,7 +157,7 @@ function buildElkGraph(
     for (const childId of group.children) {
       const node = nodeMap.get(childId);
       if (!node) continue;
-      const sz = nodeSize(node.label);
+      const sz = nodeSize(node.label, node.description);
       groupChildren.push({ id: childId, width: sz.width, height: sz.height });
     }
     const labelW = group.label.length * GROUP_LABEL_FONT_SIZE * 0.55 + 40;
@@ -164,7 +175,7 @@ function buildElkGraph(
 
   for (const node of nodes) {
     if (!nodeToGroup.has(node.id)) {
-      const sz = nodeSize(node.label);
+      const sz = nodeSize(node.label, node.description);
       children.push({ id: node.id, width: sz.width, height: sz.height });
     }
   }

@@ -1,20 +1,10 @@
 import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import { layoutGraph, type Box } from "./elk-layout";
 import type { GroupDef, NodeDef, EdgeDef } from "./graph-types";
+import type { DiagramTheme } from "./themes";
+import { getTheme, DEFAULT_THEME_ID } from "./themes";
 
 export type ConvertedElements = ReturnType<typeof convertToExcalidrawElements>;
-
-// Pastel background colors for group containers
-const GROUP_COLORS = [
-  "#dbeafe", // blue
-  "#dcfce7", // green
-  "#ede9fe", // purple
-  "#ffedd5", // orange
-  "#fce7f3", // pink
-  "#cffafe", // cyan
-  "#fef9c3", // yellow
-  "#fee2e2", // red
-];
 
 const NODE_FONT_SIZE = 20;
 const GROUP_LABEL_FONT_SIZE = 22;
@@ -27,6 +17,7 @@ function buildSkeletons(
   edges: EdgeDef[],
   positions: Map<string, Box>,
   routes: Map<string, [number, number][]>,
+  theme: DiagramTheme,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,12 +34,12 @@ function buildSkeletons(
       y: pos.y,
       width: pos.width,
       height: pos.height,
-      backgroundColor: GROUP_COLORS[idx % GROUP_COLORS.length],
+      backgroundColor: theme.groupColors[idx % theme.groupColors.length],
       fillStyle: "solid",
-      opacity: 60,
-      strokeColor: "#868e96",
-      strokeWidth: 1,
-      roundness: { type: 3 },
+      opacity: Math.round(theme.group.opacity * 100),
+      strokeColor: theme.group.strokeColor,
+      strokeWidth: theme.group.strokeWidth,
+      roundness: theme.group.borderRadius > 0 ? { type: 3 } : null,
       label: {
         text: group.label,
         fontSize: GROUP_LABEL_FONT_SIZE,
@@ -62,6 +53,9 @@ function buildSkeletons(
   for (const node of nodes) {
     const pos = positions.get(node.id);
     if (!pos) continue;
+    const labelText = node.description
+      ? `${node.label}\n${node.description}`
+      : node.label;
     out.push({
       type: "rectangle",
       id: node.id,
@@ -69,14 +63,14 @@ function buildSkeletons(
       y: pos.y,
       width: pos.width,
       height: pos.height,
-      backgroundColor: "#ffffff",
+      backgroundColor: theme.node.bgColor,
       fillStyle: "solid",
-      strokeColor: "#1e1e1e",
-      strokeWidth: 2,
-      roundness: { type: 3 },
+      strokeColor: theme.node.strokeColor,
+      strokeWidth: theme.node.strokeWidth,
+      roundness: theme.node.borderRadius > 0 ? { type: 3 } : null,
       label: {
-        text: node.label,
-        fontSize: NODE_FONT_SIZE,
+        text: labelText,
+        fontSize: node.description ? 16 : NODE_FONT_SIZE,
       },
     });
   }
@@ -97,8 +91,8 @@ function buildSkeletons(
       x: sx,
       y: sy,
       points: relPts,
-      strokeColor: "#495057",
-      strokeWidth: 2,
+      strokeColor: theme.edge.strokeColor,
+      strokeWidth: theme.edge.strokeWidth,
       roundness: null, // sharp orthogonal corners
       start: { id: edge.from },
       end: { id: edge.to },
@@ -118,11 +112,12 @@ function buildSkeletons(
 
 export async function convertGraph(
   source: string,
+  theme: DiagramTheme = getTheme(DEFAULT_THEME_ID),
 ): Promise<{ elements: ConvertedElements; files: Record<string, never> }> {
   const { positions, edgeRoutes, groups, nodes, edges } =
     await layoutGraph(source);
 
-  const skeletons = buildSkeletons(groups, nodes, edges, positions, edgeRoutes);
+  const skeletons = buildSkeletons(groups, nodes, edges, positions, edgeRoutes, theme);
   const elements = convertToExcalidrawElements(skeletons);
 
   return { elements, files: {} as Record<string, never> };
