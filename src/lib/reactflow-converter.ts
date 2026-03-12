@@ -71,7 +71,8 @@ export async function convertGraphToFlow(source: string): Promise<FlowResult> {
     flowNodes.push({
       id: node.id,
       position,
-      data: { label: node.label, color: "#ffffff" },
+      ...(node.description ? { type: "describedNode" } : {}),
+      data: { label: node.label, description: node.description, color: "#ffffff" },
       ...(groupId ? { parentId: groupId } : {}),
       measured: { width: pos.width, height: pos.height },
       style: {

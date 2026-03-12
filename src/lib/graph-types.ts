@@ -19,6 +19,7 @@ export interface GroupDef {
 export interface NodeDef {
   id: string;
   label: string;
+  description?: string;
 }
 
 export interface EdgeDef {

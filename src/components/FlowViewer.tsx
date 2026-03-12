@@ -34,7 +34,43 @@ function LabeledGroupNode({ data }: NodeProps) {
   );
 }
 
-const nodeTypes = { labeledGroup: LabeledGroupNode };
+function DescribedNode({ data }: NodeProps) {
+  const { label, description } = data as { label?: string; description?: string };
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+        height: "100%",
+        padding: "8px 12px",
+        boxSizing: "border-box",
+      }}
+    >
+      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.2 }}>{label}</div>
+      {description && (
+        <div
+          style={{
+            fontSize: 11,
+            color: "#666",
+            marginTop: 4,
+            lineHeight: 1.3,
+            textAlign: "center",
+            wordBreak: "break-word",
+          }}
+        >
+          {description}
+        </div>
+      )}
+      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+    </div>
+  );
+}
+
+const nodeTypes = { labeledGroup: LabeledGroupNode, describedNode: DescribedNode };
 
 interface FlowViewerProps {
   nodes: Node[];
