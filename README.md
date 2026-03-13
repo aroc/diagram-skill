@@ -43,6 +43,38 @@ The viewer watches `diagram.json` for changes and hot-reloads the diagram automa
 
 Save named snapshots of your diagram from the sidebar. Browse, download, or delete saved diagrams at any time.
 
+### PNG Export
+
+Generate a high-resolution PNG image of your diagram using Puppeteer:
+
+```bash
+npm run build:png
+```
+
+By default this reads `diagram.json` and writes `diagram.png`. You can customize the output:
+
+```bash
+npm run build:png -- -o architecture.png          # Custom output path
+npm run build:png -- -r flow -t graphite          # ReactFlow renderer, Graphite theme
+npm run build:png -- -d ./my-diagram.json -s 3    # Different diagram, 3x scale
+npm run build:png -- --background transparent     # Transparent background
+npm run build:png -- --width 2560 --height 1440   # Custom viewport size
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `-d, --diagram` | `diagram.json` | Path to diagram JSON |
+| `-o, --output` | `diagram.png` | Output PNG path |
+| `-r, --renderer` | `excalidraw` | `excalidraw` or `flow` |
+| `-t, --theme` | `blueprint` | `blueprint`, `graphite`, or `sandstone` |
+| `-s, --scale` | `2` | Device scale factor (higher = more pixels) |
+| `-p, --padding` | `40` | Padding in pixels around the diagram |
+| `--background` | `white` | CSS color or `transparent` |
+| `--width` | `1920` | Viewport width in pixels |
+| `--height` | `1080` | Viewport height in pixels |
+
+The Excalidraw renderer uses Excalidraw's native export API for pixel-perfect text rendering.
+
 ### Static Export
 
 Generate a self-contained HTML file you can open in any browser without a server:
@@ -127,6 +159,7 @@ Diagrams are defined as JSON with nodes, edges, and optional groups:
 |---|---|
 | `npm run dev` | Start the Vite dev server with live reload on port 5174 |
 | `npm run build` | TypeScript check + production Vite build |
+| `npm run build:png` | Export a PNG image using Puppeteer |
 | `npm run build:static` | Export a self-contained HTML bundle |
 
 ### Static Export Options
@@ -142,6 +175,7 @@ npm run build:static -- --diagram <file>  # Path to diagram JSON (default: diagr
 - **Excalidraw** — Primary interactive diagram canvas
 - **React Flow** — Alternative graph renderer
 - **ELK.js** — Automatic hierarchical graph layout
+- **Puppeteer** — Headless Chrome for PNG export
 - **Vite** — Dev server and build tool
 
 ## License
