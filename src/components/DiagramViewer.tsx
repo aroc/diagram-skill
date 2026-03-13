@@ -1,4 +1,4 @@
-import { Excalidraw } from "@excalidraw/excalidraw";
+import { Excalidraw, exportToBlob } from "@excalidraw/excalidraw";
 import { useRef, useEffect, useCallback } from "react";
 import type { ConvertedElements } from "../lib/elk-converter";
 
@@ -29,6 +29,11 @@ export function DiagramViewer({ elements, files }: DiagramViewerProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleMount = useCallback((api: any) => {
     apiRef.current = api;
+    // Expose API and export function for programmatic export (used by build-png.ts)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__EXCALIDRAW_API__ = api;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__EXCALIDRAW_EXPORT__ = exportToBlob;
     // Initial zoom-to-fit after Excalidraw finishes its first render
     setTimeout(() => zoomToFit(api), 500);
   }, [zoomToFit]);
