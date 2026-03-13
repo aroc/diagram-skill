@@ -6,6 +6,11 @@ const STORAGE_KEY = "flowtown:theme";
 
 function readStoredThemeId(): string {
   try {
+    // URL param takes precedence (used by PNG export and direct linking)
+    const params = new URLSearchParams(window.location.search);
+    const urlTheme = params.get("theme");
+    if (urlTheme && urlTheme in THEMES) return urlTheme;
+
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && stored in THEMES) return stored;
     return DEFAULT_THEME_ID;
