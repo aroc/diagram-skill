@@ -70,7 +70,7 @@ function buildSkeletons(
       roundness: theme.node.borderRadius > 0 ? { type: 3 } : null,
       label: {
         text: labelText,
-        fontSize: node.description ? 16 : NODE_FONT_SIZE,
+        fontSize: node.description ? 14 : 16,
       },
     });
   }
