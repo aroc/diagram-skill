@@ -6,10 +6,10 @@ const elk = new ELK();
 // ─── Font sizing constants ───────────────────────────────────────────
 
 const NODE_FONT_SIZE = 20;
-const CHAR_WIDTH_FACTOR = 1.3;
-const NODE_PAD_X = 70;
-const MIN_NODE_W = 170;
-const MIN_NODE_H = 52;
+const CHAR_WIDTH_FACTOR = 0.6;
+const NODE_PAD_X = 36;
+const MIN_NODE_W = 100;
+const MIN_NODE_H = 40;
 const DESC_FONT_SIZE = 13;
 const DESC_LINE_HEIGHT = 18;
 const DESC_MAX_CHARS_PER_LINE = 35;
@@ -17,8 +17,8 @@ const DESC_PAD_BOTTOM = 12;
 
 const GROUP_LABEL_FONT_SIZE = 22;
 const GROUP_LABEL_HEIGHT = 36;
-const GROUP_PAD_TOP = 20;
-const GROUP_PAD_SIDE = 48;
+const GROUP_PAD_TOP = 16;
+const GROUP_PAD_SIDE = 24;
 
 export function textWidth(text: string, fontSize: number): number {
   return text.length * fontSize * CHAR_WIDTH_FACTOR;
@@ -205,12 +205,12 @@ function buildElkGraph(
     layoutOptions: {
       "elk.algorithm": "layered",
       "elk.direction": direction,
-      "elk.spacing.nodeNode": "50",
-      "elk.spacing.edgeEdge": "40",
-      "elk.spacing.edgeNode": "40",
-      "elk.layered.spacing.nodeNodeBetweenLayers": "90",
-      "elk.layered.spacing.edgeEdgeBetweenLayers": "30",
-      "elk.layered.spacing.edgeNodeBetweenLayers": "40",
+      "elk.spacing.nodeNode": "30",
+      "elk.spacing.edgeEdge": "25",
+      "elk.spacing.edgeNode": "25",
+      "elk.layered.spacing.nodeNodeBetweenLayers": "60",
+      "elk.layered.spacing.edgeEdgeBetweenLayers": "20",
+      "elk.layered.spacing.edgeNodeBetweenLayers": "25",
       "elk.hierarchyHandling": "INCLUDE_CHILDREN",
       "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
       "elk.edgeRouting": "ORTHOGONAL",
