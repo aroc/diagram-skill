@@ -3,6 +3,7 @@ import { useDiagram, type RendererType } from "./hooks/useDiagram";
 import { useTheme } from "./hooks/useTheme";
 import { DiagramViewer } from "./components/DiagramViewer";
 import { FlowViewer } from "./components/FlowViewer";
+import { D3Viewer } from "./components/D3Viewer";
 import { ErrorDisplay } from "./components/ErrorDisplay";
 import { LoadingDisplay } from "./components/LoadingDisplay";
 import { HistorySidebar } from "./components/HistorySidebar";
@@ -11,7 +12,9 @@ import { INLINE_DIAGRAM_JSON } from "./lib/inline-data";
 function getInitialRenderer(): RendererType {
   const params = new URLSearchParams(window.location.search);
   const r = params.get("renderer");
-  return r === "excalidraw" ? "excalidraw" : "flow";
+  if (r === "excalidraw") return "excalidraw";
+  if (r === "d3") return "d3";
+  return "flow";
 }
 
 export default function App() {
@@ -53,6 +56,10 @@ export default function App() {
 
     if (!data) {
       return <LoadingDisplay hasDiagram={false} />;
+    }
+
+    if (data.renderer === "d3") {
+      return <D3Viewer data={data.data} theme={theme} />;
     }
 
     if (data.renderer === "flow") {

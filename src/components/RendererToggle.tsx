@@ -20,6 +20,12 @@ export function RendererToggle({ renderer, onRendererChange }: RendererTogglePro
       >
         Excalidraw
       </button>
+      <button
+        className={`toggle-btn ${renderer === "d3" ? "active" : ""}`}
+        onClick={() => onRendererChange("d3")}
+      >
+        D3
+      </button>
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { convertGraph, type ConvertedElements } from "../lib/elk-converter";
 import { convertGraphToFlow, type FlowResult } from "../lib/reactflow-converter";
+import { convertGraphToD3, type D3Data } from "../lib/d3-converter";
 import type { DiagramTheme } from "../lib/themes";
 import { INLINE_DIAGRAM_JSON } from "../lib/inline-data";
 
-export type RendererType = "excalidraw" | "flow";
+export type RendererType = "excalidraw" | "flow" | "d3";
 
 interface ExcalidrawData {
   renderer: "excalidraw";
@@ -18,7 +19,12 @@ interface FlowData {
   edges: FlowResult["edges"];
 }
 
-type DiagramData = ExcalidrawData | FlowData;
+interface D3DiagramData {
+  renderer: "d3";
+  data: D3Data;
+}
+
+type DiagramData = ExcalidrawData | FlowData | D3DiagramData;
 
 interface DiagramState {
   data: DiagramData | null;
@@ -47,7 +53,10 @@ export function useDiagram(renderer: RendererType, sourceOverride?: string | nul
       lastSourceRef.current = source;
       try {
         let data: DiagramData;
-        if (renderer === "flow") {
+        if (renderer === "d3") {
+          const d3Data = await convertGraphToD3(source, themeRef.current);
+          data = { renderer: "d3", data: d3Data };
+        } else if (renderer === "flow") {
           const { nodes, edges } = await convertGraphToFlow(source, themeRef.current);
           data = { renderer: "flow", nodes, edges };
         } else {
