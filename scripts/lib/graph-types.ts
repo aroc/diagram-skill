@@ -6,7 +6,7 @@ export interface GraphDefinition {
   /** Individual nodes in the diagram */
   nodes: NodeDef[];
   /** Connections between nodes */
-  edges: EdgeDef[];
+  edges?: EdgeDef[];
 }
 
 export interface GroupDef {
@@ -19,7 +19,6 @@ export interface GroupDef {
 export interface NodeDef {
   id: string;
   label: string;
-  description?: string;
 }
 
 export interface EdgeDef {

@@ -10,7 +10,7 @@ The flow is iterative. Each round follows this pattern:
 2. **Summarize** what the diagram would contain so far in plain language (e.g., "So far I'd draw 3 groups — Frontend, Backend, Storage — with 8 nodes and data flowing top-to-bottom. The main flow goes from User → API Gateway → Services → Database...")
 3. **Check in**: "Does this capture it? Want to clarify or add anything, or are you ready for me to generate the diagram?"
 4. If the user clarifies or adds detail → loop back to step 1 with follow-up questions
-5. If the user says ready → proceed to **Generate the Graph JSON** (back in the shared steps)
+5. If the user says ready → proceed to **Write the JSON File** (back in the shared steps)
 
 ## Question Areas
 
@@ -34,7 +34,7 @@ Cover these areas, adapting the order to the conversation:
 ## Conceptual Diagram Patterns
 
 ### Process / Workflow
-A sequential pipeline — use `direction: "RIGHT"`.
+A sequential pipeline — use `"RIGHT"` direction.
 
 ```json
 {
@@ -94,15 +94,15 @@ A branching diagram showing decision points and outcomes.
 {
   "direction": "DOWN",
   "nodes": [
-    { "id": "request", "label": "Incoming Request" },
+    { "id": "req", "label": "Incoming Request" },
     { "id": "auth", "label": "Authenticated?" },
     { "id": "role", "label": "Check Role" },
     { "id": "allow", "label": "Allow Access" },
-    { "id": "deny", "label": "Deny (403)" },
+    { "id": "deny", "label": "Deny 403" },
     { "id": "login", "label": "Redirect to Login" }
   ],
   "edges": [
-    { "from": "request", "to": "auth" },
+    { "from": "req", "to": "auth" },
     { "from": "auth", "to": "role", "label": "yes" },
     { "from": "auth", "to": "login", "label": "no" },
     { "from": "role", "to": "allow", "label": "admin" },
