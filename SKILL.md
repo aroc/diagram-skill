@@ -31,17 +31,15 @@ You are an expert at analyzing codebases and producing clear architecture diagra
 
 This skill generates PNG diagrams from JSON graph definitions. You write a `.json` file describing nodes, edges, and groups, run the build script, and open the resulting PNG. ELK.js handles layout, d3-shape draws edge paths, and resvg-js converts the SVG to a high-DPI PNG.
 
-## Choosing a Workflow
+## Approach
 
-This skill supports two workflows. Choose based on the user's intent:
+Adapt your approach based on the user's request:
 
-**Code Analysis** — use when the user asks to diagram their codebase, code architecture, or project structure. Follow `<skill-dir>/workflows/code-analysis.md`, then continue with the shared steps below.
+- **Diagramming a codebase** — Analyze the project's top-level architecture before generating. Focus on the 2-3 main layers and key boundaries. Look at entry points, config files, routing, key dependencies, module boundaries, and data flow. Don't enumerate every file.
+- **Diagramming a concept** — Ask a few focused questions to understand what the user wants to visualize (components, groupings, relationships, direction of flow). Summarize what the diagram would contain and confirm before generating. Start simple (8-15 nodes) and iterate.
+- **When ambiguous** — Ask: "Would you like me to analyze your codebase, or walk through the concept together?"
 
-**Socratic / Conceptual** — use when the user wants to diagram a concept, idea, or system that isn't derived from code in the current project, or when their request is vague or abstract. Follow `<skill-dir>/workflows/socratic.md`, then continue with the shared steps below.
-
-**When ambiguous** — ask one clarifying question: "Would you like me to analyze your codebase and generate a diagram, or would you prefer to walk through the concept together so I can build a diagram from our conversation?"
-
-## Shared Steps
+## Steps
 
 ### 1. Write the JSON File
 
@@ -54,7 +52,7 @@ interface GraphDefinition {
   direction?: "DOWN" | "RIGHT";  // default: "DOWN"
   groups?: GroupDef[];
   nodes: NodeDef[];
-  edges: EdgeDef[];
+  edges?: EdgeDef[];
 }
 
 interface GroupDef {
@@ -160,7 +158,7 @@ cd <skill-dir> && npm run build:png -- -d <diagram-path> -o <output-path> -t <th
 open <output-path>
 ```
 
-If the user asks for changes, update the `.json` file accordingly. For conceptual diagrams, ask what the user wants to change rather than re-running the full questioning flow.
+If the user asks for changes, update the `.json` file accordingly. Ask what the user wants to change rather than starting over.
 
 ## Troubleshooting
 
