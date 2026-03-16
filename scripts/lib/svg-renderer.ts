@@ -65,6 +65,20 @@ export function renderSvg(layout: LayoutResult, theme: DiagramTheme, background:
     }
   }
 
+  // Include edge label extents in bounding box
+  for (let ei = 0; ei < edges.length; ei++) {
+    const edge = edges[ei];
+    if (!edge.label) continue;
+    const pts = edgeRoutes.get(`edge-${ei}`);
+    if (!pts || pts.length < 2) continue;
+    const [mx, my] = polylineMidpoint(pts);
+    const { width: labelW, height: labelH } = edgeLabelSize(edge.label);
+    minX = Math.min(minX, mx - labelW / 2);
+    maxX = Math.max(maxX, mx + labelW / 2);
+    minY = Math.min(minY, my - labelH / 2);
+    maxY = Math.max(maxY, my + labelH / 2);
+  }
+
   if (minX === Infinity) {
     throw new Error("No positioned elements found — diagram would be empty.");
   }
