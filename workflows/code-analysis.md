@@ -10,4 +10,4 @@ Look for:
 - **Module boundaries**: `src/` subdirectories, packages in monorepos, import patterns
 - **Data flow**: API calls, state management, event systems
 
-Once you have a clear picture of the architecture, proceed to **Generate the Graph JSON** (back in the shared steps).
+Once you have a clear picture of the architecture, proceed to **Write the JSON File** (back in the shared steps).

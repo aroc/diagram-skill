@@ -1,6 +1,6 @@
 ---
 name: flowtown
-description: Generate interactive diagrams from codebases or through guided conceptual exploration. Produces draggable Excalidraw diagrams with hierarchical layout via ELK.js and live reload.
+description: Generate architecture diagrams from codebases or through guided conceptual exploration. Renders JSON graph definitions as crisp PNGs via ELK layout and resvg.
 triggers:
   - flowtown
   - diagram
@@ -23,15 +23,13 @@ triggers:
 
 # Diagram Generator
 
-You are an expert at analyzing codebases and producing clear, interactive architecture diagrams, as well as guiding users through conceptual diagram creation.
+You are an expert at analyzing codebases and producing clear architecture diagrams, as well as guiding users through conceptual diagram creation.
 
 **`<skill-dir>`** refers to the directory containing this SKILL.md file. All file paths below are relative to it.
 
 ## How This Skill Works
 
-This skill uses a Vite dev server with Excalidraw to render diagrams as interactive, draggable elements. You write a simple JSON graph definition to a file and the viewer auto-layouts it with ELK.js (Eclipse Layout Kernel) and renders it in Excalidraw with live reload.
-
-All elements are fully interactive — nodes can be dragged, labels edited, and diagrams exported to PNG/SVG.
+This skill generates PNG diagrams from JSON graph definitions. You write a `.json` file describing nodes, edges, and groups, run the build script, and open the resulting PNG. ELK.js handles layout, d3-shape draws edge paths, and resvg-js converts the SVG to a high-DPI PNG.
 
 ## Choosing a Workflow
 
@@ -45,211 +43,204 @@ This skill supports two workflows. Choose based on the user's intent:
 
 ## Shared Steps
 
-### 1. Generate the Graph JSON
+### 1. Write the JSON File
 
-Write a JSON graph definition to `<skill-dir>/diagram.json`.
+Write a `.json` file to `<skill-dir>/diagram.json` using the `GraphDefinition` schema.
 
-The file does not need to exist before starting the viewer — the viewer will show a "Waiting for diagram..." state until the file appears, then auto-render it.
+**Schema:**
 
-**JSON Schema:**
+```typescript
+interface GraphDefinition {
+  direction?: "DOWN" | "RIGHT";  // default: "DOWN"
+  groups?: GroupDef[];
+  nodes: NodeDef[];
+  edges: EdgeDef[];
+}
 
-```json
-{
-  "direction": "DOWN",
-  "groups": [
-    {
-      "id": "group-id",
-      "label": "Group Display Name",
-      "children": ["node-id-1", "node-id-2"]
-    }
-  ],
-  "nodes": [
-    { "id": "node-id-1", "label": "Node Display Name" },
-    { "id": "node-id-2", "label": "Another Node" }
-  ],
-  "edges": [
-    { "from": "node-id-1", "to": "node-id-2", "label": "optional edge label" }
-  ]
+interface GroupDef {
+  id: string;
+  label: string;
+  children: string[];  // node IDs belonging to this group
+}
+
+interface NodeDef {
+  id: string;
+  label: string;
+}
+
+interface EdgeDef {
+  from: string;
+  to: string;
+  label?: string;
 }
 ```
 
-**Fields:**
-
-- `direction` (optional): `"DOWN"` (top-to-bottom, default) or `"RIGHT"` (left-to-right)
-- `groups` (optional): Colored containers that visually group related nodes. Each group lists the `children` node IDs it contains.
-- `nodes` (required): All nodes in the diagram. Must have at least one.
-- `edges` (optional): Connections between nodes. `label` is optional.
-
-**Template:**
+**Example:**
 
 ```json
 {
   "direction": "DOWN",
   "groups": [
-    {
-      "id": "client",
-      "label": "Client Layer",
-      "children": ["ui", "state"]
-    },
-    {
-      "id": "api",
-      "label": "API Layer",
-      "children": ["router", "auth", "handlers"]
-    },
-    {
-      "id": "data",
-      "label": "Data Layer",
-      "children": ["db", "cache"]
-    }
+    { "id": "backend", "label": "Backend Services", "children": ["api", "auth", "handler"] },
+    { "id": "storage", "label": "Storage Layer", "children": ["db", "cache"] }
   ],
   "nodes": [
-    { "id": "ui", "label": "React App" },
-    { "id": "state", "label": "State Management" },
-    { "id": "router", "label": "API Router" },
-    { "id": "auth", "label": "Auth Middleware" },
-    { "id": "handlers", "label": "Request Handlers" },
+    { "id": "app", "label": "Frontend App" },
+    { "id": "api", "label": "API Gateway" },
+    { "id": "auth", "label": "Auth Check" },
+    { "id": "handler", "label": "Handler" },
     { "id": "db", "label": "Database" },
-    { "id": "cache", "label": "Cache" }
+    { "id": "cache", "label": "Redis Cache" },
+    { "id": "queue", "label": "Message Queue" }
   ],
   "edges": [
-    { "from": "ui", "to": "state", "label": "user actions" },
-    { "from": "state", "to": "router", "label": "API calls" },
-    { "from": "router", "to": "auth" },
-    { "from": "auth", "to": "handlers" },
-    { "from": "handlers", "to": "db", "label": "queries" },
-    { "from": "handlers", "to": "cache", "label": "read/write" }
+    { "from": "app", "to": "api" },
+    { "from": "api", "to": "auth" },
+    { "from": "auth", "to": "handler", "label": "authorized" },
+    { "from": "handler", "to": "db" },
+    { "from": "handler", "to": "cache", "label": "optional" },
+    { "from": "handler", "to": "queue", "label": "critical" }
   ]
 }
 ```
 
 **Best Practices:**
 
+- Keep labels concise (under ~25 characters)
+- Use groups for logical grouping (frontend, backend, storage, etc.)
+- Use edge labels to describe what flows between components
+- Limit to 10-20 nodes for readability
 - Use `"DOWN"` for layered architectures, `"RIGHT"` for pipelines/sequences
-- Use groups to visually cluster related components (frontend, backend, storage, etc.)
-- Use descriptive edge labels to show what flows between components
-- Keep node IDs short but meaningful (lowercase, no spaces)
-- Limit to 15-25 nodes for readability — focus on key components, not every file
-- Every node referenced in `groups.children` or `edges` must exist in `nodes`
-- A node can belong to at most one group. Nodes not in any group are placed standalone.
+- Every node ID should be short but meaningful (e.g., `api`, `db`, `authSvc`)
+- All nodes referenced in edges or group children must exist in the `nodes` array
+- Group IDs must not collide with node IDs
 
-### 2. Start the Viewer
+### 2. Choose a Theme
+
+Three themes are available. Pick the best fit for the diagram's purpose, or let the user specify with `-t`.
+
+| Theme | Look | Best for |
+|---|---|---|
+| **slate** | Clean blue nodes, grey lines | Technical docs, architecture reviews |
+| **sandstone** | Warm earth tones, cream/gold | Presentations, reports |
+| **figjam** | Bright sticky-note colors, playful | Workshops, collaborative sessions |
+
+Default is **slate** if not specified.
+
+### 3. Build the PNG
 
 ```bash
-cd <skill-dir>
-npm install && npm run dev
+cd <skill-dir> && npm install && npm run build:png -- -d <diagram-path> -o <output-path> -t <theme>
 ```
 
-This opens a browser at `http://localhost:5174` with the interactive Excalidraw diagram. The port is fixed at 5174 — if it's already in use from a previous session, find and kill that process first (`lsof -ti:5174 | xargs kill`).
-
-Tell the user: "Your diagram is now open at http://localhost:5174. You can drag nodes, edit labels, and export to PNG (via the hamburger menu in the top-left)."
-
-### 3. Export as Static HTML (optional)
-
-If the user asks to save the diagram locally, export it to a folder, or wants a static version they can open without a server:
-
-````bash
-cd <skill-dir>
-npm install && npm run build:static -- --output /path/to/target-folder
-````
-
 **Options:**
-- `--output <dir>` or `-o <dir>`: Target folder for the static build (default: `dist`). Relative paths resolve from the current working directory.
-- `--diagram <file>` or `-d <file>`: Path to the diagram JSON file (default: `diagram.json` in the skill directory).
 
-This produces a self-contained folder with `index.html` + bundled JS/CSS. The diagram is fully interactive — drag nodes, edit labels, export to PNG/SVG via the Excalidraw menu. No server needed; open `index.html` directly in a browser.
+| Option | Default | Description |
+|---|---|---|
+| `-d, --diagram` | `diagram.json` | Path to `.json` diagram file |
+| `-o, --output` | `diagram.png` | Output PNG path |
+| `-t, --theme` | `slate` | `sandstone`, `slate`, or `figjam` |
+| `-s, --scale` | `3` | DPI multiplier (higher = more pixels) |
+| `--background` | `white` | Background color or `transparent` |
 
-Tell the user: "The diagram has been exported to `/path/to/target-folder/`. Open `index.html` in a browser to view the interactive diagram."
+### 4. Open the PNG
 
-**Note:** Static export and the dev server are independent. Use `npm run dev` to iterate with live reload, then `npm run build:static` to snapshot the result.
+```bash
+open <output-path>
+```
 
-### 4. Iterate
+Tell the user: "Your diagram has been generated. I've opened it for you."
 
-To update the diagram, overwrite `<skill-dir>/diagram.json` with new content. The viewer live-reloads automatically — no need to restart the server or refresh the browser. User annotations and viewport position are preserved across updates.
+### 5. Iterate
 
-If the user asks for changes (e.g., "add the database layer", "show the auth flow"), update the JSON file accordingly. For conceptual diagrams, ask what the user wants to change rather than re-running the full questioning flow.
+To update the diagram, modify the `.json` file and re-run:
 
-### 5. Cleanup
+```bash
+cd <skill-dir> && npm run build:png -- -d <diagram-path> -o <output-path> -t <theme>
+open <output-path>
+```
 
-When the user is done with the diagram, stop the Vite dev server (Ctrl+C in the terminal where it's running, or `lsof -ti:5174 | xargs kill`).
+If the user asks for changes, update the `.json` file accordingly. For conceptual diagrams, ask what the user wants to change rather than re-running the full questioning flow.
 
-### 6. Troubleshooting
+## Troubleshooting
 
-If the diagram fails to render, the viewer displays the parse error along with the raw JSON source for debugging. Common fixes:
+- **Layout issues**: Check that all node IDs referenced in edges and group children exist in the `nodes` array
+- **Text clipping**: Keep labels short — ELK auto-sizes nodes but very long labels may get tight
+- **Missing arrows**: Ensure edges reference valid node IDs with `from` and `to`
+- **Empty diagram**: Ensure the `.json` file has at least one node
 
-- **Parse error**: Ensure the file is valid JSON (no trailing commas, proper quoting)
-- **Blank diagram**: Ensure `diagram.json` has at least one node in the `nodes` array
-- **Missing nodes**: Every node ID in `edges.from`, `edges.to`, and `groups.children` must have a matching entry in `nodes`
-- **Overlapping labels**: Keep node labels concise (under ~25 characters)
+## Common Patterns
 
-The viewer auto-reloads on every save — fix the JSON and it will retry automatically.
+### Layered Architecture
+```json
+{
+  "direction": "DOWN",
+  "groups": [
+    { "id": "client", "label": "Client Layer", "children": ["ui", "state"] },
+    { "id": "api", "label": "API Layer", "children": ["router", "auth", "handlers"] },
+    { "id": "data", "label": "Data Layer", "children": ["db", "cache"] }
+  ],
+  "nodes": [
+    { "id": "ui", "label": "React App" },
+    { "id": "state", "label": "State Mgmt" },
+    { "id": "router", "label": "API Router" },
+    { "id": "auth", "label": "Auth Middleware" },
+    { "id": "handlers", "label": "Handlers" },
+    { "id": "db", "label": "Database" },
+    { "id": "cache", "label": "Cache" }
+  ],
+  "edges": [
+    { "from": "ui", "to": "state" },
+    { "from": "state", "to": "router" },
+    { "from": "router", "to": "auth" },
+    { "from": "auth", "to": "handlers" },
+    { "from": "handlers", "to": "db" },
+    { "from": "handlers", "to": "cache" }
+  ]
+}
+```
 
-### 7. Common Patterns
-
-These patterns are most relevant for the Code Analysis workflow. For conceptual diagram patterns, see `<skill-dir>/workflows/socratic.md`.
-
-**Microservices:**
+### Microservices
 ```json
 {
   "direction": "RIGHT",
-  "groups": [
-    { "id": "services", "label": "Services", "children": ["svc_a", "svc_b"] },
-    { "id": "infra", "label": "Infrastructure", "children": ["queue", "db_a", "db_b"] }
-  ],
   "nodes": [
-    { "id": "gateway", "label": "API Gateway" },
-    { "id": "svc_a", "label": "Service A" },
-    { "id": "svc_b", "label": "Service B" },
+    { "id": "gw", "label": "API Gateway" },
+    { "id": "svcA", "label": "Service A" },
+    { "id": "svcB", "label": "Service B" },
     { "id": "queue", "label": "Message Queue" },
-    { "id": "db_a", "label": "DB A" },
-    { "id": "db_b", "label": "DB B" }
+    { "id": "dbA", "label": "DB A" },
+    { "id": "dbB", "label": "DB B" }
   ],
   "edges": [
-    { "from": "gateway", "to": "svc_a" },
-    { "from": "gateway", "to": "svc_b" },
-    { "from": "svc_a", "to": "queue", "label": "publish" },
-    { "from": "queue", "to": "svc_b", "label": "consume" },
-    { "from": "svc_a", "to": "db_a" },
-    { "from": "svc_b", "to": "db_b" }
+    { "from": "gw", "to": "svcA" },
+    { "from": "gw", "to": "svcB" },
+    { "from": "svcA", "to": "queue", "label": "publish" },
+    { "from": "queue", "to": "svcB", "label": "consume" },
+    { "from": "svcA", "to": "dbA" },
+    { "from": "svcB", "to": "dbB" }
   ]
 }
 ```
 
-**Event-Driven:**
+### Decision Flow
 ```json
 {
   "direction": "DOWN",
   "nodes": [
-    { "id": "producer", "label": "Event Producer" },
-    { "id": "bus", "label": "Event Bus" },
-    { "id": "consumer_a", "label": "Consumer A" },
-    { "id": "consumer_b", "label": "Consumer B" },
-    { "id": "store", "label": "Event Store" }
+    { "id": "req", "label": "Incoming Request" },
+    { "id": "auth", "label": "Authenticated?" },
+    { "id": "role", "label": "Check Role" },
+    { "id": "allow", "label": "Allow Access" },
+    { "id": "deny", "label": "Deny 403" },
+    { "id": "login", "label": "Redirect to Login" }
   ],
   "edges": [
-    { "from": "producer", "to": "bus", "label": "publish" },
-    { "from": "bus", "to": "consumer_a", "label": "subscribe" },
-    { "from": "bus", "to": "consumer_b", "label": "subscribe" },
-    { "from": "consumer_a", "to": "store" }
-  ]
-}
-```
-
-**Layered / MVC:**
-```json
-{
-  "direction": "DOWN",
-  "nodes": [
-    { "id": "view", "label": "Views / Templates" },
-    { "id": "controller", "label": "Controllers" },
-    { "id": "service", "label": "Service Layer" },
-    { "id": "repo", "label": "Repository Layer" },
-    { "id": "db", "label": "Database" }
-  ],
-  "edges": [
-    { "from": "view", "to": "controller" },
-    { "from": "controller", "to": "service" },
-    { "from": "service", "to": "repo" },
-    { "from": "repo", "to": "db" }
+    { "from": "req", "to": "auth" },
+    { "from": "auth", "to": "role", "label": "yes" },
+    { "from": "auth", "to": "login", "label": "no" },
+    { "from": "role", "to": "allow", "label": "admin" },
+    { "from": "role", "to": "deny", "label": "guest" }
   ]
 }
 ```
