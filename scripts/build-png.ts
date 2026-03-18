@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Resvg } from "@resvg/resvg-js";
-import { layoutGraph } from "./lib/elk-layout.js";
-import { renderSvg } from "./lib/svg-renderer.js";
+import { buildSvg } from "./lib/diagram.js";
 import { getTheme, THEME_NAMES } from "./lib/themes.js";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -130,13 +129,10 @@ async function main() {
   console.log(`Background: ${opts.background}`);
   console.log();
 
-  // Layout
+  // Layout + render SVG
   console.log("Computing layout...");
-  const layout = await layoutGraph(source);
-
-  // Render SVG
   const theme = getTheme(opts.theme);
-  const svg = renderSvg(layout, theme, opts.background);
+  const svg = await buildSvg(source, theme, opts.background);
 
   // Convert to PNG
   console.log("Rendering PNG...");

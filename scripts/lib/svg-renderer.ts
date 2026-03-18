@@ -3,46 +3,10 @@ import { edgeLabelSize, CYLINDER_CAP_HEIGHT, HEXAGON_INSET, DOCUMENT_WAVE_HEIGHT
 import type { LayoutResult, Box } from "./elk-layout.js";
 import type { NodeShape } from "./graph-types.js";
 import type { DiagramTheme } from "./themes.js";
+import { PADDING, escapeXml, polylineMidpoint, svgOpen, svgBackground, svgArrowMarker } from "./svg-utils.js";
 
-const PADDING = 40;
-
-export function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-/** Compute the midpoint of a polyline by walking its segments. */
-export function polylineMidpoint(pts: [number, number][]): [number, number] {
-  if (pts.length === 0) return [0, 0];
-  if (pts.length === 1) return pts[0];
-
-  let totalLen = 0;
-  const segLens: number[] = [];
-  for (let i = 1; i < pts.length; i++) {
-    const dx = pts[i][0] - pts[i - 1][0];
-    const dy = pts[i][1] - pts[i - 1][1];
-    const len = Math.sqrt(dx * dx + dy * dy);
-    segLens.push(len);
-    totalLen += len;
-  }
-
-  let half = totalLen / 2;
-  for (let i = 0; i < segLens.length; i++) {
-    if (half <= segLens[i]) {
-      const t = segLens[i] === 0 ? 0 : half / segLens[i];
-      return [
-        pts[i][0] + t * (pts[i + 1][0] - pts[i][0]),
-        pts[i][1] + t * (pts[i + 1][1] - pts[i][1]),
-      ];
-    }
-    half -= segLens[i];
-  }
-
-  return pts[pts.length - 1];
-}
+// Re-export for backward compat with tests
+export { escapeXml, polylineMidpoint };
 
 // ─── Shape renderers ────────────────────────────────────────────────
 
@@ -122,7 +86,7 @@ function renderNodeShape(
   }
 }
 
-export function renderSvg(layout: LayoutResult, theme: DiagramTheme, background: string): string {
+export function renderFlowSvg(layout: LayoutResult, theme: DiagramTheme, background: string): string {
   const { positions, edgeRoutes, groups, nodes, edges } = layout;
 
   // Compute bounding box
@@ -171,22 +135,16 @@ export function renderSvg(layout: LayoutResult, theme: DiagramTheme, background:
 
   const parts: string[] = [];
 
-  // SVG open
-  parts.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">`,
-  );
+  parts.push(svgOpen(svgW, svgH));
 
   // Defs: arrowhead marker
   parts.push(`<defs>
-  <marker id="arrowhead" markerWidth="${theme.edge.arrowSize}" markerHeight="${theme.edge.arrowSize}" refX="${theme.edge.arrowSize}" refY="${theme.edge.arrowSize / 2}" orient="auto" markerUnits="userSpaceOnUse">
-    <polygon points="0 0, ${theme.edge.arrowSize} ${theme.edge.arrowSize / 2}, 0 ${theme.edge.arrowSize}" fill="${theme.edge.strokeColor}" />
-  </marker>
+  ${svgArrowMarker("arrowhead", theme.edge.arrowSize, theme.edge.strokeColor)}
 </defs>`);
 
   // Background
-  if (background !== "transparent") {
-    parts.push(`<rect width="${svgW}" height="${svgH}" fill="${background}" />`);
-  }
+  const bg = svgBackground(svgW, svgH, background);
+  if (bg) parts.push(bg);
 
   // Open transform group
   parts.push(`<g transform="translate(${ox},${oy})">`);
@@ -274,3 +232,6 @@ export function renderSvg(layout: LayoutResult, theme: DiagramTheme, background:
 
   return parts.join("\n");
 }
+
+/** @deprecated Use renderFlowSvg instead */
+export const renderSvg = renderFlowSvg;

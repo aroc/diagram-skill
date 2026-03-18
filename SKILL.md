@@ -1,6 +1,6 @@
 ---
 name: flowtown
-description: Generate architecture diagrams from codebases or through guided conceptual exploration. Renders JSON graph definitions as crisp PNGs via ELK layout and resvg.
+description: Generate architecture diagrams, sequence diagrams, and ERDs from codebases or through guided conceptual exploration. Renders JSON definitions as crisp PNGs via ELK layout and resvg.
 triggers:
   - flowtown
   - diagram
@@ -19,6 +19,12 @@ triggers:
   - brainstorm diagram
   - help me diagram
   - design diagram
+  - sequence diagram
+  - erd
+  - entity relationship
+  - database diagram
+  - db schema
+  - data model
 ---
 
 # Diagram Generator
@@ -29,7 +35,13 @@ You are an expert at analyzing codebases and producing clear architecture diagra
 
 ## How This Skill Works
 
-This skill generates PNG diagrams from JSON graph definitions. You write a `.json` file describing nodes, edges, and groups, run the build script, and open the resulting PNG. ELK.js handles layout, d3-shape draws edge paths, and resvg-js converts the SVG to a high-DPI PNG.
+This skill generates PNG diagrams from JSON definitions. Three diagram types are supported:
+
+- **Flow diagrams** — Architecture, data flow, decision trees. Uses ELK.js for automatic layout.
+- **Sequence diagrams** — Request/response flows between participants over time. Uses arithmetic layout (no ELK).
+- **ERD (Entity-Relationship Diagrams)** — Database schemas with entities, fields, and relationships. Uses ELK.js for layout.
+
+You write a `.json` file, run the build script, and open the resulting PNG. The `type` field in the JSON selects the diagram type (default: `"flow"`).
 
 ## Approach
 
@@ -43,12 +55,13 @@ Adapt your approach based on the user's request:
 
 ### 1. Write the JSON File
 
-Write a `.json` file to `<skill-dir>/diagram.json` using the `GraphDefinition` schema.
+Write a `.json` file to `<skill-dir>/diagram.json`. The `type` field selects the diagram type.
 
-**Schema:**
+#### Flow Diagrams (default)
 
 ```typescript
-interface GraphDefinition {
+interface FlowDefinition {
+  type?: "flow";                  // default if omitted
   direction?: "DOWN" | "RIGHT";  // default: "DOWN"
   groups?: GroupDef[];
   nodes: NodeDef[];
@@ -74,7 +87,7 @@ interface EdgeDef {
 }
 ```
 
-**Example:**
+**Flow example:**
 
 ```json
 {
@@ -103,8 +116,7 @@ interface EdgeDef {
 }
 ```
 
-**Best Practices:**
-
+**Flow best practices:**
 - Keep labels concise (under ~25 characters)
 - Use groups for logical grouping (frontend, backend, storage, etc.)
 - Use edge labels to describe what flows between components
@@ -114,6 +126,143 @@ interface EdgeDef {
 - All nodes referenced in edges or group children must exist in the `nodes` array
 - Group IDs must not collide with node IDs
 - Use `shape` to convey node purpose: `"cylinder"` for databases/storage, `"diamond"` for decisions, `"ellipse"` for start/end states, `"hexagon"` for workers/processes, `"document"` for files. Default is `"rect"`
+
+#### Sequence Diagrams
+
+```typescript
+interface SequenceDefinition {
+  type: "sequence";
+  participants: ParticipantDef[];
+  messages: MessageDef[];
+}
+
+interface ParticipantDef {
+  id: string;
+  label: string;
+}
+
+interface MessageDef {
+  from: string;           // participant ID
+  to: string;             // participant ID (can equal `from` for self-messages)
+  label?: string;
+  type?: "solid" | "dashed";  // solid = request (default), dashed = response
+}
+```
+
+**Sequence example:**
+
+```json
+{
+  "type": "sequence",
+  "participants": [
+    { "id": "user", "label": "Browser" },
+    { "id": "api", "label": "API Server" },
+    { "id": "auth", "label": "Auth Service" },
+    { "id": "db", "label": "Database" }
+  ],
+  "messages": [
+    { "from": "user", "to": "api", "label": "POST /login" },
+    { "from": "api", "to": "auth", "label": "validate token" },
+    { "from": "auth", "to": "db", "label": "SELECT user" },
+    { "from": "db", "to": "auth", "label": "user row", "type": "dashed" },
+    { "from": "auth", "to": "api", "label": "{ valid: true }", "type": "dashed" },
+    { "from": "api", "to": "user", "label": "200 OK + JWT", "type": "dashed" }
+  ]
+}
+```
+
+**Sequence best practices:**
+- Use `"solid"` for requests/calls and `"dashed"` for responses/returns
+- Order participants left-to-right by their typical call flow (caller on the left)
+- Keep message labels short — they sit above the arrow line
+- Self-messages (`from === to`) render as a loop and are useful for internal processing steps
+- 3-6 participants is ideal; more than 8 gets wide
+
+#### ERD (Entity-Relationship Diagrams)
+
+```typescript
+interface ErdDefinition {
+  type: "erd";
+  entities: EntityDef[];
+  relationships: RelationshipDef[];
+}
+
+interface EntityDef {
+  id: string;
+  label: string;
+  fields: FieldDef[];
+}
+
+interface FieldDef {
+  name: string;
+  type: string;           // e.g., "INT", "VARCHAR(255)", "TIMESTAMPTZ"
+  pk?: boolean;           // primary key indicator
+  fk?: boolean;           // foreign key indicator
+}
+
+type Cardinality = "1" | "N" | "0..1" | "0..N" | "1..N";
+
+interface RelationshipDef {
+  from: string;           // entity ID
+  to: string;             // entity ID
+  label?: string;         // optional relationship label
+  fromCardinality?: Cardinality;
+  toCardinality?: Cardinality;
+}
+```
+
+**ERD example:**
+
+```json
+{
+  "type": "erd",
+  "entities": [
+    {
+      "id": "users",
+      "label": "Users",
+      "fields": [
+        { "name": "id", "type": "SERIAL", "pk": true },
+        { "name": "email", "type": "VARCHAR(255)" },
+        { "name": "name", "type": "VARCHAR(100)" },
+        { "name": "created_at", "type": "TIMESTAMP" }
+      ]
+    },
+    {
+      "id": "orders",
+      "label": "Orders",
+      "fields": [
+        { "name": "id", "type": "SERIAL", "pk": true },
+        { "name": "user_id", "type": "INT", "fk": true },
+        { "name": "total", "type": "DECIMAL(10,2)" },
+        { "name": "status", "type": "VARCHAR(20)" }
+      ]
+    },
+    {
+      "id": "items",
+      "label": "Order Items",
+      "fields": [
+        { "name": "id", "type": "SERIAL", "pk": true },
+        { "name": "order_id", "type": "INT", "fk": true },
+        { "name": "product", "type": "VARCHAR(200)" },
+        { "name": "qty", "type": "INT" },
+        { "name": "price", "type": "DECIMAL(10,2)" }
+      ]
+    }
+  ],
+  "relationships": [
+    { "from": "users", "to": "orders", "fromCardinality": "1", "toCardinality": "N" },
+    { "from": "orders", "to": "items", "fromCardinality": "1", "toCardinality": "N" }
+  ]
+}
+```
+
+**ERD best practices:**
+- Mark primary keys with `"pk": true` and foreign keys with `"fk": true` — they render as colored PK/FK badges
+- Use standard SQL type names for clarity (VARCHAR, INT, SERIAL, UUID, etc.)
+- Include cardinality (`"1"`, `"N"`, `"0..1"`, `"0..N"`, `"1..N"`) to show relationship multiplicities
+- 3-8 entities is ideal for readability
+- Each entity must have at least one field
+- Relationship `from`/`to` must reference valid entity IDs
 
 ### 2. Choose a Theme
 
@@ -162,12 +311,20 @@ open <output-path>
 
 If the user asks for changes, update the `.json` file accordingly. Ask what the user wants to change rather than starting over.
 
+## Choosing the Right Diagram Type
+
+| Want to show... | Use |
+|---|---|
+| System architecture, data flow, component relationships | **Flow** (`type: "flow"` or omit) |
+| Request/response interactions between services over time | **Sequence** (`type: "sequence"`) |
+| Database schema with tables, columns, and foreign keys | **ERD** (`type: "erd"`) |
+
 ## Troubleshooting
 
-- **Layout issues**: Check that all node IDs referenced in edges and group children exist in the `nodes` array
-- **Text clipping**: Keep labels short — ELK auto-sizes nodes but very long labels may get tight
-- **Missing arrows**: Ensure edges reference valid node IDs with `from` and `to`
-- **Empty diagram**: Ensure the `.json` file has at least one node
+- **Layout issues**: Check that all IDs referenced in edges/relationships are valid
+- **Text clipping**: Keep labels short — long labels may get tight
+- **Missing arrows**: Ensure edges reference valid node/entity/participant IDs
+- **Empty diagram**: Ensure the `.json` file has at least one node/participant/entity
 
 ## Common Patterns
 
@@ -241,6 +398,82 @@ If the user asks for changes, update the `.json` file accordingly. Ask what the 
     { "from": "auth", "to": "login", "label": "no" },
     { "from": "role", "to": "allow", "label": "admin" },
     { "from": "role", "to": "deny", "label": "guest" }
+  ]
+}
+```
+
+### API Authentication Sequence
+```json
+{
+  "type": "sequence",
+  "participants": [
+    { "id": "client", "label": "Mobile App" },
+    { "id": "gateway", "label": "API Gateway" },
+    { "id": "auth", "label": "Auth Service" },
+    { "id": "db", "label": "User DB" }
+  ],
+  "messages": [
+    { "from": "client", "to": "gateway", "label": "POST /login" },
+    { "from": "gateway", "to": "auth", "label": "authenticate()" },
+    { "from": "auth", "to": "db", "label": "SELECT user" },
+    { "from": "db", "to": "auth", "label": "user record", "type": "dashed" },
+    { "from": "auth", "to": "auth", "label": "generate JWT" },
+    { "from": "auth", "to": "gateway", "label": "token", "type": "dashed" },
+    { "from": "gateway", "to": "client", "label": "200 + JWT", "type": "dashed" }
+  ]
+}
+```
+
+### E-Commerce Database Schema
+```json
+{
+  "type": "erd",
+  "entities": [
+    {
+      "id": "customers",
+      "label": "Customers",
+      "fields": [
+        { "name": "id", "type": "UUID", "pk": true },
+        { "name": "email", "type": "VARCHAR(255)" },
+        { "name": "name", "type": "VARCHAR(200)" }
+      ]
+    },
+    {
+      "id": "orders",
+      "label": "Orders",
+      "fields": [
+        { "name": "id", "type": "UUID", "pk": true },
+        { "name": "customer_id", "type": "UUID", "fk": true },
+        { "name": "total", "type": "DECIMAL(10,2)" },
+        { "name": "status", "type": "VARCHAR(20)" }
+      ]
+    },
+    {
+      "id": "products",
+      "label": "Products",
+      "fields": [
+        { "name": "id", "type": "UUID", "pk": true },
+        { "name": "name", "type": "VARCHAR(200)" },
+        { "name": "price", "type": "DECIMAL(10,2)" },
+        { "name": "stock", "type": "INT" }
+      ]
+    },
+    {
+      "id": "order_items",
+      "label": "Order Items",
+      "fields": [
+        { "name": "id", "type": "UUID", "pk": true },
+        { "name": "order_id", "type": "UUID", "fk": true },
+        { "name": "product_id", "type": "UUID", "fk": true },
+        { "name": "qty", "type": "INT" },
+        { "name": "unit_price", "type": "DECIMAL(10,2)" }
+      ]
+    }
+  ],
+  "relationships": [
+    { "from": "customers", "to": "orders", "fromCardinality": "1", "toCardinality": "N" },
+    { "from": "orders", "to": "order_items", "fromCardinality": "1", "toCardinality": "N" },
+    { "from": "products", "to": "order_items", "fromCardinality": "1", "toCardinality": "0..N" }
   ]
 }
 ```

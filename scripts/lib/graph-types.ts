@@ -1,4 +1,9 @@
+export type DiagramType = "flow" | "sequence" | "erd";
+export const VALID_DIAGRAM_TYPES: DiagramType[] = ["flow", "sequence", "erd"];
+
 export interface GraphDefinition {
+  /** Diagram type discriminator. Default: "flow" */
+  type?: DiagramType;
   /** Layout direction: "DOWN" (top-to-bottom) or "RIGHT" (left-to-right) */
   direction?: "DOWN" | "RIGHT";
   /** Groups of related nodes (rendered as colored containers) */
