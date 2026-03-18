@@ -6,10 +6,10 @@ const elk = new ELK();
 // ─── Font sizing constants ───────────────────────────────────────────
 
 const NODE_FONT_SIZE = 20;
-const CHAR_WIDTH_FACTOR = 1.3;
-const NODE_PAD_X = 70;
-const MIN_NODE_W = 170;
-const MIN_NODE_H = 52;
+const CHAR_WIDTH_FACTOR = 0.48;
+const NODE_PAD_X = 36;
+const MIN_NODE_W = 120;
+const MIN_NODE_H = 48;
 
 const GROUP_LABEL_FONT_SIZE = 22;
 const GROUP_LABEL_CHAR_WIDTH_FACTOR = 0.55;

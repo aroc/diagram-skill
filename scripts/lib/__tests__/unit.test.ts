@@ -9,9 +9,9 @@ import { getTheme } from "../themes.js";
 // ─── T1: textWidth and nodeSize ──────────────────────────────────────
 
 describe("textWidth", () => {
-  it("returns length * fontSize * 1.3", () => {
-    // "Hello" has 5 chars, fontSize 20 => 5 * 20 * 1.3 = 130
-    assert.strictEqual(textWidth("Hello", 20), 130);
+  it("returns length * fontSize * 0.48", () => {
+    // "Hello" has 5 chars, fontSize 20 => 5 * 20 * 0.48 = 48
+    assert.strictEqual(textWidth("Hello", 20), 48);
   });
 
   it("returns 0 for empty string", () => {
@@ -21,17 +21,17 @@ describe("textWidth", () => {
 
 describe("nodeSize", () => {
   it("hits MIN_NODE_W for short labels", () => {
-    // "Hi" => textWidth = 2 * 20 * 1.3 = 52, plus NODE_PAD_X=70 => 122 < 170
+    // "Hi" => textWidth = 2 * 20 * 0.48 = 19.2, plus NODE_PAD_X=36 => 55.2 < 120
     const result = nodeSize("Hi");
-    assert.deepStrictEqual(result, { width: 170, height: 52 });
+    assert.deepStrictEqual(result, { width: 120, height: 48 });
   });
 
-  it("returns width > 170 for long labels", () => {
-    // "This is a long label" => 20 chars * 20 * 1.3 = 520, + 70 = 590
+  it("returns width > 120 for long labels", () => {
+    // "This is a long label" => 20 chars * 20 * 0.48 = 192, + 36 = 228
     const result = nodeSize("This is a long label");
-    assert.ok(result.width > 170, `Expected width > 170 but got ${result.width}`);
-    assert.strictEqual(result.width, 20 * 20 * 1.3 + 70); // 590
-    assert.strictEqual(result.height, 52);
+    assert.ok(result.width > 120, `Expected width > 120 but got ${result.width}`);
+    assert.strictEqual(result.width, 20 * 20 * 0.48 + 36); // 228
+    assert.strictEqual(result.height, 48);
   });
 });
 
