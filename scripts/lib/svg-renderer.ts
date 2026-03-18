@@ -1,6 +1,7 @@
 import { line as d3Line } from "d3-shape";
-import { edgeLabelSize } from "./elk-layout.js";
+import { edgeLabelSize, CYLINDER_CAP_HEIGHT, HEXAGON_INSET, DOCUMENT_WAVE_HEIGHT } from "./elk-layout.js";
 import type { LayoutResult, Box } from "./elk-layout.js";
+import type { NodeShape } from "./graph-types.js";
 import type { DiagramTheme } from "./themes.js";
 
 const PADDING = 40;
@@ -41,6 +42,84 @@ export function polylineMidpoint(pts: [number, number][]): [number, number] {
   }
 
   return pts[pts.length - 1];
+}
+
+// ─── Shape renderers ────────────────────────────────────────────────
+
+function renderRectShape(box: Box, r: number, fill: string, stroke: string, strokeWidth: number): string {
+  return `<rect x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="${r}" ry="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+}
+
+function renderCylinderShape(box: Box, fill: string, stroke: string, strokeWidth: number): string {
+  const { x, y, width: w, height: h } = box;
+  const cap = CYLINDER_CAP_HEIGHT;
+  const parts: string[] = [];
+  // Body rect
+  parts.push(`<rect x="${x}" y="${y + cap}" width="${w}" height="${h - cap * 2}" fill="${fill}" stroke="none" />`);
+  // Left and right edges
+  parts.push(`<line x1="${x}" y1="${y + cap}" x2="${x}" y2="${y + h - cap}" stroke="${stroke}" stroke-width="${strokeWidth}" />`);
+  parts.push(`<line x1="${x + w}" y1="${y + cap}" x2="${x + w}" y2="${y + h - cap}" stroke="${stroke}" stroke-width="${strokeWidth}" />`);
+  // Top ellipse (full)
+  parts.push(`<ellipse cx="${x + w / 2}" cy="${y + cap}" rx="${w / 2}" ry="${cap}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`);
+  // Bottom ellipse (lower half only, via clip path)
+  const clipId = `cyl-clip-${x}-${y}`;
+  parts.push(`<clipPath id="${clipId}"><rect x="${x}" y="${y + h - cap}" width="${w}" height="${cap}" /></clipPath>`);
+  parts.push(`<ellipse cx="${x + w / 2}" cy="${y + h - cap}" rx="${w / 2}" ry="${cap}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" clip-path="url(#${clipId})" />`);
+  return parts.join("\n");
+}
+
+function renderDiamondShape(box: Box, fill: string, stroke: string, strokeWidth: number): string {
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const hw = box.width / 2;
+  const hh = box.height / 2;
+  const points = `${cx},${cy - hh} ${cx + hw},${cy} ${cx},${cy + hh} ${cx - hw},${cy}`;
+  return `<polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+}
+
+function renderEllipseShape(box: Box, fill: string, stroke: string, strokeWidth: number): string {
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  return `<ellipse cx="${cx}" cy="${cy}" rx="${box.width / 2}" ry="${box.height / 2}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+}
+
+function renderHexagonShape(box: Box, fill: string, stroke: string, strokeWidth: number): string {
+  const { x, y, width: w, height: h } = box;
+  const inset = HEXAGON_INSET;
+  const points = `${x + inset},${y} ${x + w - inset},${y} ${x + w},${y + h / 2} ${x + w - inset},${y + h} ${x + inset},${y + h} ${x},${y + h / 2}`;
+  return `<polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+}
+
+function renderDocumentShape(box: Box, fill: string, stroke: string, strokeWidth: number): string {
+  const { x, y, width: w, height: h } = box;
+  const wave = DOCUMENT_WAVE_HEIGHT;
+  const bodyH = h - wave;
+  const d = `M${x},${y} L${x + w},${y} L${x + w},${y + bodyH} C${x + w * 0.75},${y + bodyH + wave * 2} ${x + w * 0.25},${y + bodyH - wave} ${x},${y + bodyH + wave / 2} Z`;
+  return `<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+}
+
+function renderNodeShape(
+  shape: NodeShape | undefined,
+  box: Box,
+  borderRadius: number,
+  fill: string,
+  stroke: string,
+  strokeWidth: number,
+): string {
+  switch (shape) {
+    case "cylinder":
+      return renderCylinderShape(box, fill, stroke, strokeWidth);
+    case "diamond":
+      return renderDiamondShape(box, fill, stroke, strokeWidth);
+    case "ellipse":
+      return renderEllipseShape(box, fill, stroke, strokeWidth);
+    case "hexagon":
+      return renderHexagonShape(box, fill, stroke, strokeWidth);
+    case "document":
+      return renderDocumentShape(box, fill, stroke, strokeWidth);
+    default:
+      return renderRectShape(box, borderRadius, fill, stroke, strokeWidth);
+  }
 }
 
 export function renderSvg(layout: LayoutResult, theme: DiagramTheme, background: string): string {
@@ -178,7 +257,7 @@ export function renderSvg(layout: LayoutResult, theme: DiagramTheme, background:
     const r = theme.node.borderRadius;
 
     parts.push(
-      `<rect x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="${r}" ry="${r}" fill="${bgColor}" stroke="${strokeColor}" stroke-width="${theme.node.strokeWidth}" />`,
+      renderNodeShape(node.shape, box, r, bgColor, strokeColor, theme.node.strokeWidth),
     );
 
     // Centered label

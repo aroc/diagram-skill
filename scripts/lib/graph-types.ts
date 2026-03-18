@@ -16,9 +16,13 @@ export interface GroupDef {
   children: string[];
 }
 
+export const VALID_NODE_SHAPES = ["rect", "cylinder", "diamond", "ellipse", "hexagon", "document"] as const;
+export type NodeShape = (typeof VALID_NODE_SHAPES)[number];
+
 export interface NodeDef {
   id: string;
   label: string;
+  shape?: NodeShape;
 }
 
 export interface EdgeDef {

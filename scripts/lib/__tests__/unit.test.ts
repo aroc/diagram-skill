@@ -1,9 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 
-import { textWidth, nodeSize, collectPositions, collectEdgeRoutes } from "../elk-layout.js";
+import { textWidth, nodeSize, collectPositions, collectEdgeRoutes, CYLINDER_CAP_HEIGHT, HEXAGON_INSET, DOCUMENT_WAVE_HEIGHT, layoutGraph } from "../elk-layout.js";
 import type { ElkResult } from "../elk-layout.js";
-import { polylineMidpoint, escapeXml } from "../svg-renderer.js";
+import { polylineMidpoint, escapeXml, renderSvg } from "../svg-renderer.js";
 import { getTheme } from "../themes.js";
 
 // ─── T1: textWidth and nodeSize ──────────────────────────────────────
@@ -250,5 +250,110 @@ describe("getTheme", () => {
         return true;
       },
     );
+  });
+});
+
+// ─── T7: nodeSize shape variants ────────────────────────────────────
+
+describe("nodeSize shape variants", () => {
+  it("rect returns base size (default)", () => {
+    const r = nodeSize("Hello", "rect");
+    const d = nodeSize("Hello");
+    assert.deepStrictEqual(r, d);
+  });
+
+  it("diamond is ~1.6x wider and taller than rect", () => {
+    const rect = nodeSize("Test", "rect");
+    const diamond = nodeSize("Test", "diamond");
+    assert.strictEqual(diamond.width, rect.width * 1.6);
+    assert.strictEqual(diamond.height, rect.height * 1.6);
+  });
+
+  it("cylinder adds cap height to top and bottom", () => {
+    const rect = nodeSize("DB", "rect");
+    const cyl = nodeSize("DB", "cylinder");
+    assert.strictEqual(cyl.width, rect.width);
+    assert.strictEqual(cyl.height, rect.height + CYLINDER_CAP_HEIGHT * 2);
+  });
+
+  it("ellipse is 1.2x wider than rect", () => {
+    const rect = nodeSize("Start", "rect");
+    const ell = nodeSize("Start", "ellipse");
+    assert.strictEqual(ell.width, rect.width * 1.2);
+    assert.strictEqual(ell.height, rect.height);
+  });
+
+  it("hexagon adds inset padding", () => {
+    const rect = nodeSize("Worker", "rect");
+    const hex = nodeSize("Worker", "hexagon");
+    assert.strictEqual(hex.width, rect.width + HEXAGON_INSET * 2);
+    assert.strictEqual(hex.height, rect.height);
+  });
+
+  it("document adds wave height", () => {
+    const rect = nodeSize("File", "rect");
+    const doc = nodeSize("File", "document");
+    assert.strictEqual(doc.width, rect.width);
+    assert.strictEqual(doc.height, rect.height + DOCUMENT_WAVE_HEIGHT);
+  });
+});
+
+// ─── T8: shape validation ───────────────────────────────────────────
+
+describe("shape validation", () => {
+  it("rejects invalid shape in layoutGraph", async () => {
+    const json = JSON.stringify({
+      nodes: [{ id: "a", label: "A", shape: "triangle" }],
+    });
+    await assert.rejects(() => layoutGraph(json), (err: Error) => {
+      assert.ok(err.message.includes('Invalid shape "triangle"'));
+      return true;
+    });
+  });
+});
+
+// ─── T9: SVG shape smoke tests ──────────────────────────────────────
+
+describe("SVG shape rendering", () => {
+  it("diamond produces a polygon", async () => {
+    const layout = await layoutGraph(JSON.stringify({
+      nodes: [{ id: "d", label: "Decision", shape: "diamond" }],
+    }));
+    const svg = renderSvg(layout, getTheme("slate"), "white");
+    assert.ok(svg.includes("<polygon"), "Expected <polygon for diamond");
+  });
+
+  it("cylinder produces an ellipse", async () => {
+    const layout = await layoutGraph(JSON.stringify({
+      nodes: [{ id: "db", label: "Database", shape: "cylinder" }],
+    }));
+    const svg = renderSvg(layout, getTheme("slate"), "white");
+    assert.ok(svg.includes("<ellipse"), "Expected <ellipse for cylinder");
+  });
+
+  it("mixed shapes all render", async () => {
+    const layout = await layoutGraph(JSON.stringify({
+      nodes: [
+        { id: "a", label: "Rect" },
+        { id: "b", label: "Diamond", shape: "diamond" },
+        { id: "c", label: "Cylinder", shape: "cylinder" },
+        { id: "d", label: "Ellipse", shape: "ellipse" },
+        { id: "e", label: "Hexagon", shape: "hexagon" },
+        { id: "f", label: "Document", shape: "document" },
+      ],
+      edges: [
+        { from: "a", to: "b" },
+        { from: "b", to: "c" },
+        { from: "c", to: "d" },
+        { from: "d", to: "e" },
+        { from: "e", to: "f" },
+      ],
+    }));
+    const svg = renderSvg(layout, getTheme("slate"), "white");
+    // Should have polygon (diamond + hexagon), ellipse (cylinder + ellipse), path (document), rect (rect node)
+    assert.ok(svg.includes("<polygon"), "Expected polygon elements");
+    assert.ok(svg.includes("<ellipse"), "Expected ellipse elements");
+    assert.ok(svg.includes("<path"), "Expected path elements");
+    assert.ok(svg.includes("<rect"), "Expected rect elements");
   });
 });

@@ -1,5 +1,6 @@
 import ELK from "elkjs/lib/elk.bundled.js";
-import type { GraphDefinition, GroupDef, NodeDef, EdgeDef } from "./graph-types.js";
+import type { GraphDefinition, GroupDef, NodeDef, EdgeDef, NodeShape } from "./graph-types.js";
+import { VALID_NODE_SHAPES } from "./graph-types.js";
 
 const elk = new ELK();
 
@@ -10,6 +11,12 @@ const CHAR_WIDTH_FACTOR = 0.48;
 const NODE_PAD_X = 36;
 const MIN_NODE_W = 120;
 const MIN_NODE_H = 48;
+
+// ─── Shape sizing constants ─────────────────────────────────────────
+
+export const CYLINDER_CAP_HEIGHT = 12;
+export const HEXAGON_INSET = 30;
+export const DOCUMENT_WAVE_HEIGHT = 10;
 
 const GROUP_LABEL_FONT_SIZE = 22;
 const GROUP_LABEL_CHAR_WIDTH_FACTOR = 0.55;
@@ -34,11 +41,24 @@ export function edgeLabelSize(text: string): { width: number; height: number } {
   };
 }
 
-export function nodeSize(label: string): { width: number; height: number } {
-  return {
-    width: Math.max(textWidth(label, NODE_FONT_SIZE) + NODE_PAD_X, MIN_NODE_W),
-    height: MIN_NODE_H,
-  };
+export function nodeSize(label: string, shape: NodeShape = "rect"): { width: number; height: number } {
+  const baseW = Math.max(textWidth(label, NODE_FONT_SIZE) + NODE_PAD_X, MIN_NODE_W);
+  const baseH = MIN_NODE_H;
+
+  switch (shape) {
+    case "diamond":
+      return { width: baseW * 1.6, height: baseH * 1.6 };
+    case "cylinder":
+      return { width: baseW, height: baseH + CYLINDER_CAP_HEIGHT * 2 };
+    case "ellipse":
+      return { width: baseW * 1.2, height: baseH };
+    case "hexagon":
+      return { width: baseW + HEXAGON_INSET * 2, height: baseH };
+    case "document":
+      return { width: baseW, height: baseH + DOCUMENT_WAVE_HEIGHT };
+    default:
+      return { width: baseW, height: baseH };
+  }
 }
 
 // ─── Type helpers for the ELK result (minimal) ──────────────────────
@@ -160,7 +180,7 @@ function buildElkGraph(
     for (const childId of group.children) {
       const node = nodeMap.get(childId);
       if (!node) continue;
-      const sz = nodeSize(node.label);
+      const sz = nodeSize(node.label, node.shape);
       groupChildren.push({ id: childId, width: sz.width, height: sz.height });
     }
     const labelW = group.label.length * GROUP_LABEL_FONT_SIZE * GROUP_LABEL_CHAR_WIDTH_FACTOR + GROUP_LABEL_PAD_X;
@@ -178,7 +198,7 @@ function buildElkGraph(
 
   for (const node of nodes) {
     if (!nodeToGroup.has(node.id)) {
-      const sz = nodeSize(node.label);
+      const sz = nodeSize(node.label, node.shape);
       children.push({ id: node.id, width: sz.width, height: sz.height });
     }
   }
@@ -272,6 +292,11 @@ export async function layoutGraph(source: string): Promise<LayoutResult> {
     }
     if (!node.label || typeof node.label !== "string") {
       throw new Error(`Invalid node "${node.id}": missing or non-string "label".`);
+    }
+    if (node.shape !== undefined && !VALID_NODE_SHAPES.includes(node.shape as NodeShape)) {
+      throw new Error(
+        `Invalid shape "${node.shape}" for node "${node.id}". Valid shapes: ${VALID_NODE_SHAPES.join(", ")}`,
+      );
     }
     if (nodeMap.has(node.id)) {
       throw new Error(`Duplicate node ID "${node.id}". Each node must have a unique ID.`);

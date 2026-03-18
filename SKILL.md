@@ -64,6 +64,7 @@ interface GroupDef {
 interface NodeDef {
   id: string;
   label: string;
+  shape?: "rect" | "cylinder" | "diamond" | "ellipse" | "hexagon" | "document";
 }
 
 interface EdgeDef {
@@ -112,6 +113,7 @@ interface EdgeDef {
 - Every node ID should be short but meaningful (e.g., `api`, `db`, `authSvc`)
 - All nodes referenced in edges or group children must exist in the `nodes` array
 - Group IDs must not collide with node IDs
+- Use `shape` to convey node purpose: `"cylinder"` for databases/storage, `"diamond"` for decisions, `"ellipse"` for start/end states, `"hexagon"` for workers/processes, `"document"` for files. Default is `"rect"`
 
 ### 2. Choose a Theme
 
@@ -207,8 +209,8 @@ If the user asks for changes, update the `.json` file accordingly. Ask what the 
     { "id": "svcA", "label": "Service A" },
     { "id": "svcB", "label": "Service B" },
     { "id": "queue", "label": "Message Queue" },
-    { "id": "dbA", "label": "DB A" },
-    { "id": "dbB", "label": "DB B" }
+    { "id": "dbA", "label": "DB A", "shape": "cylinder" },
+    { "id": "dbB", "label": "DB B", "shape": "cylinder" }
   ],
   "edges": [
     { "from": "gw", "to": "svcA" },
@@ -226,9 +228,9 @@ If the user asks for changes, update the `.json` file accordingly. Ask what the 
 {
   "direction": "DOWN",
   "nodes": [
-    { "id": "req", "label": "Incoming Request" },
-    { "id": "auth", "label": "Authenticated?" },
-    { "id": "role", "label": "Check Role" },
+    { "id": "req", "label": "Incoming Request", "shape": "ellipse" },
+    { "id": "auth", "label": "Authenticated?", "shape": "diamond" },
+    { "id": "role", "label": "Check Role", "shape": "diamond" },
     { "id": "allow", "label": "Allow Access" },
     { "id": "deny", "label": "Deny 403" },
     { "id": "login", "label": "Redirect to Login" }
